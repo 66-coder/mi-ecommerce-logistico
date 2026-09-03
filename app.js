@@ -1,5 +1,7 @@
 const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136"; 
-const BASE_ID = "appZ3owVzxMEyjUKh"; 
+const BASE_ID = "appZ3owVzxMEYjUKh"; 
+const TABLE_ID_CONTACTOS = "tblPON_AQUÍ_EL_ID_DE_CONTACTOS"; // Reemplaza con el tbl... de tu tabla Contactos
+const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E"; // ID de tu tabla Registros
 
 // 1. CARGAR EMPRESAS DINÁMICAMENTE DESDE LA TABLA 'Contactos'
 async function cargarContactos() {
@@ -10,9 +12,6 @@ async function cargarContactos() {
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
-    // REEMPLAZA ESTO CON EL ID EXACTO DE TU TABLA 'CONTACTOS'
-    const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb"; 
-
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_CONTACTOS}`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
@@ -22,13 +21,10 @@ async function cargarContactos() {
     }
 
     const data = await response.json();
-    
-    console.log("Datos que llegan de Airtable:", data.records); 
-    
+
     if (data.records && data.records.length > 0) {
       data.records.forEach(record => {
-        // Lee la columna "Name" de tu tabla Contactos
-        const nombreEmpresa = record.fields.Name; 
+        const nombreEmpresa = record.fields.Name; // Asegúrate de que tu columna en Airtable se llame 'Name'
         if (nombreEmpresa) {
           const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
           shipperSelect.innerHTML += option;
@@ -38,13 +34,14 @@ async function cargarContactos() {
     }
   } catch (error) {
     console.error("Error al cargar empresas:", error);
-    // Fallback de seguridad en caso de falla de red
+    // Fallback por si acaso la red falla
     const empresaPrueba = '<option value="Empresa A">Empresa A (Modo Seguro)</option>';
     shipperSelect.innerHTML += empresaPrueba;
     consigneeSelect.innerHTML += empresaPrueba;
   }
 }
 
+// Cargar los contactos automáticamente al abrir la página
 window.onload = cargarContactos;
 
 // 2. GUARDAR NUEVO ENVÍO DIRECTAMENTE EN LA TABLA 'Registros'
@@ -66,7 +63,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
   statusMsg.style.color = "#0066cc";
 
   try {
-      const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/tblSlljdVyt77bp7E`, {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
@@ -78,7 +75,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
           "Shipper": shipperValue,
           "Consignee": consigneeValue
         },
-        typecast: true 
+        typecast: true // Obliga a Airtable a aceptar y vincular el texto perfectamente
       })
     });
 
