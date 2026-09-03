@@ -47,7 +47,8 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
           "Numero de BL": blValue,
           "Shipper": shipperValue,
           "Consignee": consigneeValue
-        }
+        },
+        typecast: true 
       })
     });
 
