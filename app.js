@@ -1,21 +1,21 @@
 const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-console.log("Token actual:", AIRTABLE_TOKEN); // <-- Agrega esta línea temporalmente
-// 1. CARGAR LOS CONTACTOS EN LOS SELECTORES
+// 1. CARGA PERMANENTE DE CONTACTOS DESDE AIRTABLE
 async function cargarContactos() {
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Contactos`, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+      headers: { 
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
     });
-    
+
     if (!response.ok) {
-      console.error("Error en la respuesta de Airtable:", response.status);
-      return;
+      throw new Error(`Error HTTP: ${response.status} - No se pudo conectar a la tabla Contactos.`);
     }
 
     const data = await response.json();
-
     const shipperSelect = document.getElementById('shipperSelect');
     const consigneeSelect = document.getElementById('consigneeSelect');
 
@@ -23,7 +23,8 @@ async function cargarContactos() {
     consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
     data.records.forEach(record => {
-      const nombreEmpresa = record.fields.Name || "Sin Nombre";
+      // Verificamos que el campo Name exista en el registro
+      const nombreEmpresa = record.fields.Name || "Empresa sin nombre";
       const recordId = record.id;
 
       const option = `<option value="${recordId}">${nombreEmpresa}</option>`;
@@ -32,13 +33,16 @@ async function cargarContactos() {
     });
 
   } catch (error) {
-    console.error("Error al cargar contactos:", error);
+    console.error("Falla en la carga permanente:", error);
+    document.getElementById('statusMessage').textContent = "Aviso: Verificando permisos de la base de datos...";
+    document.getElementById('statusMessage').style.color = "orange";
   }
 }
 
-cargarContactos();
+// Ejecutar la conexión permanente al cargar la ventana
+window.onload = cargarContactos;
 
-// 2. GUARDAR EL NUEVO ENVÍO
+// 2. GUARDADO DEFINITIVO DE ENVÍOS Y VINCULACIONES
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
@@ -47,7 +51,13 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
   const consigneeId = document.getElementById('consigneeSelect').value;
   const statusMsg = document.getElementById('statusMessage');
 
-  statusMsg.textContent = "Guardando envío...";
+  if (!shipperId || !consigneeId) {
+    statusMsg.textContent = "Por favor seleccione un Shipper y un Consignee.";
+    statusMsg.style.color = "red";
+    return;
+  }
+
+  statusMsg.textContent = "Guardando en base de datos...";
   statusMsg.style.color = "#0066cc";
 
   try {
@@ -60,26 +70,26 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       body: JSON.stringify({
         fields: {
           "Numero de BL": blValue,
-          "Shipper": [shipperId],
-          "Consignee": [consigneeId]
+          "Shipper": [shipperId],     // Relación relacional nativa de Airtable
+          "Consignee": [consigneeId]  // Relación relacional nativa de Airtable
         }
       })
     });
 
     if (response.ok) {
-      statusMsg.textContent = "¡Envío registrado y vinculado con éxito!";
+      statusMsg.textContent = "¡Registro guardado y vinculado permanentemente!";
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
       cargarContactos();
     } else {
       const errorData = await response.json();
-      console.error(errorData);
-      statusMsg.textContent = "Error al guardar. Revisa la consola.";
+      console.error("Error de Airtable al guardar:", errorData);
+      statusMsg.textContent = "Error al guardar el envío. Revisa la consola.";
       statusMsg.style.color = "red";
     }
   } catch (error) {
-    console.error(error);
-    statusMsg.textContent = "Error de red.";
+    console.error("Error crítico de red:", error);
+    statusMsg.textContent = "Error de red al intentar conectar con el servidor.";
     statusMsg.style.color = "red";
   }
 });
