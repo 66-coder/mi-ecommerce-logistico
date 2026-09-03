@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión Logística - BL</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f6f8; }
+    .form-card { background: white; padding: 25px; border-radius: 8px; max-width: 450px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #333; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { background-color: #0066cc; color: white; font-weight: bold; cursor: pointer; border: none; margin-top: 20px; }
+    button:hover { background-color: #0052a3; }
+    #statusMessage { margin-top: 15px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="form-card">
+    <h2>Emitir Nuevo Bill of Lading (BL)</h2>
+    <form id="shippingForm">
+      
+      <label>Número de BL:</label>
+      <input type="text" id="blNumber" placeholder="Ej: BL-VALPO-2026" required>
+      
+      <label>Shipper (Remitente):</label>
+      <select id="shipperSelect" required>
+        <option value="">Cargando shippers...</option>
+      </select>
+
+      <label>Consignee (Destinatario):</label>
+      <select id="consigneeSelect" required>
+        <option value="">Cargando consignees...</option>
+      </select>
+      
+      <button type="submit">Guardar Envío en Airtable</button>
+    </form>
+    <p id="statusMessage"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
