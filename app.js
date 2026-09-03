@@ -1,7 +1,7 @@
-const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
+const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.89785e11ee50747230c7561aa42bc93e540d448cd3e9964a2ce8a6c9301226cf"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-// 1. CARGAR DATOS DESDE LA TABLA PRINCIPAL DE ENVÍOS PARA EVITAR EL 403
+// 1. CARGAR DATOS DESDE LA TABLA ENVÍOS
 async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
@@ -10,7 +10,6 @@ async function cargarContactos() {
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
-    // Consultamos la tabla Envios, que sabemos que tiene el permiso 100% abierto
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Envios`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
@@ -21,7 +20,6 @@ async function cargarContactos() {
 
     const data = await response.json();
 
-    // Extraemos los shippers y consignees únicos que ya se hayan registrado antes
     const shippersSet = new Set();
     const consigneesSet = new Set();
 
@@ -43,10 +41,9 @@ async function cargarContactos() {
   }
 }
 
-// Ejecutar al cargar la página
 window.onload = cargarContactos;
 
-// 2. GUARDAR EL NUEVO ENVÍO DIRECTAMENTE EN AIRTABLE
+// 2. GUARDAR NUEVO ENVÍO
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
