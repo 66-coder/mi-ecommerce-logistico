@@ -1,47 +1,60 @@
 const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-// 1. CARGA SEGURA DE EMPRESAS (Sin bloqueos de esquema externos)
-function cargarContactos() {
+// 1. CARGAR EMPRESAS DE FORMA DINÁMICA DESDE LA TABLA CONTACTOS
+async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
 
-  shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
-  consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Contactos`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+    });
 
-  // Listado oficial de tu operación logística
-  const empresasLogisticas = [
-    { id: "Empresa A", name: "Empresa A" },
-    { id: "Exportadora Los Andes", name: "Exportadora Los Andes" },
-    { id: "Puerto Valparaíso S.A.", name: "Puerto Valparaíso S.A." }
-  ];
+    if (!response.ok) {
+      throw new Error(`Error al conectar con la tabla Contactos (Código: ${response.status})`);
+    }
 
-  empresasLogisticas.forEach(empresa => {
-    const option = `<option value="${empresa.name}">${empresa.name}</option>`;
-    shipperSelect.innerHTML += option;
-    consigneeSelect.innerHTML += option;
-  });
+    const data = await response.json();
+
+    shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
+    consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
+
+    data.records.forEach(record => {
+      const nombreEmpresa = record.fields.Name || "Sin Nombre";
+      const recordId = record.id;
+
+      const option = `<option value="${recordId}">${nombreEmpresa}</option>`;
+      shipperSelect.innerHTML += option;
+      consigneeSelect.innerHTML += option;
+    });
+
+  } catch (error) {
+    console.error(error);
+    shipperSelect.innerHTML = '<option value="">Error al cargar empresas</option>';
+    consigneeSelect.innerHTML = '<option value="">Error al cargar empresas</option>';
+  }
 }
 
-// Inicializar selectores al abrir
+// Ejecutar al cargar la página
 window.onload = cargarContactos;
 
-// 2. ENVÍO DIRECTO A LA TABLA PRINCIPAL DE AIRTABLE
+// 2. GUARDAR EL NUEVO ENVÍO VINCULADO EN AIRTABLE
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
   const blValue = document.getElementById('blNumber').value;
-  const shipperValue = document.getElementById('shipperSelect').value;
-  const consigneeValue = document.getElementById('consigneeSelect').value;
+  const shipperId = document.getElementById('shipperSelect').value;
+  const consigneeId = document.getElementById('consigneeSelect').value;
   const statusMsg = document.getElementById('statusMessage');
 
-  if (!shipperValue || !consigneeValue) {
-    statusMsg.textContent = "Por favor seleccione el Shipper y el Consignee.";
+  if (!shipperId || !consigneeId) {
+    statusMsg.textContent = "Seleccione un Shipper y un Consignee válidos.";
     statusMsg.style.color = "red";
     return;
   }
 
-  statusMsg.textContent = "Guardando registro logístico...";
+  statusMsg.textContent = "Guardando envío...";
   statusMsg.style.color = "#0066cc";
 
   try {
@@ -54,26 +67,26 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       body: JSON.stringify({
         fields: {
           "Numero de BL": blValue,
-          "Shipper": shipperValue,
-          "Consignee": consigneeValue
+          "Shipper": [shipperId],
+          "Consignee": [consigneeId]
         }
       })
     });
 
     if (response.ok) {
-      statusMsg.textContent = "¡Envío registrado con éxito en la base de datos!";
+      statusMsg.textContent = "¡Envío registrado y vinculado con éxito!";
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
       cargarContactos();
     } else {
       const errorData = await response.json();
-      console.error("Detalle del error:", errorData);
+      console.error(errorData);
       statusMsg.textContent = "Error al guardar. Revisa la consola.";
       statusMsg.style.color = "red";
     }
   } catch (error) {
-    console.error("Error de conexión:", error);
-    statusMsg.textContent = "Error de red al conectar con Airtable.";
+    console.error(error);
+    statusMsg.textContent = "Error de red.";
     statusMsg.style.color = "red";
   }
 });
