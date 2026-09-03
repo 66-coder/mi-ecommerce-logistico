@@ -1,5 +1,5 @@
 const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136"; 
-const BASE_ID = "appZ3owVzxMEYjUKh"; 
+const BASE_ID = "appZ3owVzxMEyjUKh"; 
 
 // 1. CARGAR EMPRESAS DE FORMA SEGURA (Sin errores 403)
 function cargarContactos() {
