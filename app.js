@@ -1,18 +1,46 @@
 const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136"; 
 const BASE_ID = "appZ3owVzxMEyjUKh"; 
 
-// 1. CARGAR EMPRESAS DE FORMA SEGURA (Sin errores 403)
-function cargarContactos() {
+// 1. CARGAR EMPRESAS DINÁMICAMENTE DESDE LA TABLA 'Contactos'
+async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
 
   shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
-  // Cargamos tu empresa de prueba directamente para asegurar el funcionamiento visual del selector
-  const empresaPrueba = '<option value="Empresa A">Empresa A</option>';
-  shipperSelect.innerHTML += empresaPrueba;
-  consigneeSelect.innerHTML += empresaPrueba;
+  try {
+    // REEMPLAZA ESTO CON EL ID EXACTO DE TU TABLA 'CONTACTOS'
+    const TABLE_ID_CONTACTOS = "tblTU_ID_DE_CONTACTOS_AQUI"; 
+
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_CONTACTOS}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al conectar con Contactos (Código: ${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (data.records && data.records.length > 0) {
+      data.records.forEach(record => {
+        // Lee la columna "Name" de tu tabla Contactos
+        const nombreEmpresa = record.fields.Name; 
+        if (nombreEmpresa) {
+          const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
+          shipperSelect.innerHTML += option;
+          consigneeSelect.innerHTML += option;
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error al cargar empresas:", error);
+    // Fallback de seguridad en caso de falla de red
+    const empresaPrueba = '<option value="Empresa A">Empresa A (Modo Seguro)</option>';
+    shipperSelect.innerHTML += empresaPrueba;
+    consigneeSelect.innerHTML += empresaPrueba;
+  }
 }
 
 window.onload = cargarContactos;
