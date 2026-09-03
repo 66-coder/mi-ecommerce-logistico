@@ -1,10 +1,14 @@
 const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-// 1. CARGAR EMPRESAS DE FORMA DINÁMICA DESDE LA TABLA CONTACTOS
+// 1. CARGAR EMPRESAS 100% DESDE AIRTABLE (Sin datos falsos en el código)
 async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
+
+  // Dejamos los selectores con la opción inicial vacía de guía
+  shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
+  consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Contactos`, {
@@ -17,22 +21,24 @@ async function cargarContactos() {
 
     const data = await response.json();
 
-    shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
-    consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
+    // Si Airtable tiene registros, los recorremos y los agregamos al select
+    if (data.records && data.records.length > 0) {
+      data.records.forEach(record => {
+        const nombreEmpresa = record.fields.Name || "Sin Nombre";
+        const recordId = record.id;
 
-    data.records.forEach(record => {
-      const nombreEmpresa = record.fields.Name || "Sin Nombre";
-      const recordId = record.id;
-
-      const option = `<option value="${recordId}">${nombreEmpresa}</option>`;
-      shipperSelect.innerHTML += option;
-      consigneeSelect.innerHTML += option;
-    });
+        const option = `<option value="${recordId}">${nombreEmpresa}</option>`;
+        shipperSelect.innerHTML += option;
+        consigneeSelect.innerHTML += option;
+      });
+    } else {
+      // Si la tabla está vacía, opcionalmente podemos dejar una opción informativa
+      shipperSelect.innerHTML = '<option value="">No hay empresas registradas</option>';
+      consigneeSelect.innerHTML = '<option value="">No hay empresas registradas</option>';
+    }
 
   } catch (error) {
-    console.error(error);
-    shipperSelect.innerHTML = '<option value="">Error al cargar empresas</option>';
-    consigneeSelect.innerHTML = '<option value="">Error al cargar empresas</option>';
+    console.error("Error al cargar contactos:", error);
   }
 }
 
