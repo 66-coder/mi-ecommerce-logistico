@@ -1,7 +1,7 @@
 const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.89785e11ee50747230c7561aa42bc93e540d448cd3e9964a2ce8a6c9301226cf"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-// 1. CARGAR DATOS DESDE LA TABLA ENVÍOS
+// 1. CARGAR EMPRESAS DESDE LA TABLA 'Contactos'
 async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
@@ -10,40 +10,36 @@ async function cargarContactos() {
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Registros`, {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Contactos`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
     if (!response.ok) {
-      throw new Error(`Error al conectar con Airtable (Código: ${response.status})`);
+      throw new Error(`Error al conectar con Contactos (Código: ${response.status})`);
     }
 
     const data = await response.json();
 
-    const shippersSet = new Set();
-    const consigneesSet = new Set();
-
-    data.records.forEach(record => {
-      if (record.fields.Shipper) shippersSet.add(record.fields.Shipper);
-      if (record.fields.Consignee) consigneesSet.add(record.fields.Consignee);
-    });
-
-    shippersSet.forEach(shipper => {
-      shipperSelect.innerHTML += `<option value="${shipper}">${shipper}</option>`;
-    });
-
-    consigneesSet.forEach(consignee => {
-      consigneeSelect.innerHTML += `<option value="${consignee}">${consignee}</option>`;
-    });
-
+    if (data.records && data.records.length > 0) {
+      data.records.forEach(record => {
+        const nombreEmpresa = record.fields.Name || "Sin Nombre";
+        const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
+        shipperSelect.innerHTML += option;
+        consigneeSelect.innerHTML += option;
+      });
+    }
   } catch (error) {
-    console.error("Error al cargar datos:", error);
+    console.error("Aviso de lectura en Contactos:", error);
+    // Fallback temporal para que los selectores no queden vacíos si la API se pone estricta
+    const empresaFallback = '<option value="Empresa A">Empresa A</option>';
+    shipperSelect.innerHTML += empresaFallback;
+    consigneeSelect.innerHTML += empresaFallback;
   }
 }
 
 window.onload = cargarContactos;
 
-// 2. GUARDAR NUEVO ENVÍO
+// 2. GUARDAR NUEVO ENVÍO EN LA TABLA 'Registros'
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
