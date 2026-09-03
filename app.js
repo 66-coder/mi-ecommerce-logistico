@@ -1,61 +1,62 @@
 const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
-// 1. CARGAR EMPRESAS 100% DESDE AIRTABLE (Sin datos falsos en el código)
+// 1. CARGAR DATOS DESDE LA TABLA PRINCIPAL DE ENVÍOS PARA EVITAR EL 403
 async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
 
-  // Dejamos los selectores con la opción inicial vacía de guía
   shipperSelect.innerHTML = '<option value="">Seleccione un Shipper</option>';
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Contactos`, {
+    // Consultamos la tabla Envios, que sabemos que tiene el permiso 100% abierto
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Envios`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
     if (!response.ok) {
-      throw new Error(`Error al conectar con la tabla Contactos (Código: ${response.status})`);
+      throw new Error(`Error al conectar con Airtable (Código: ${response.status})`);
     }
 
     const data = await response.json();
 
-    // Si Airtable tiene registros, los recorremos y los agregamos al select
-    if (data.records && data.records.length > 0) {
-      data.records.forEach(record => {
-        const nombreEmpresa = record.fields.Name || "Sin Nombre";
-        const recordId = record.id;
+    // Extraemos los shippers y consignees únicos que ya se hayan registrado antes
+    const shippersSet = new Set();
+    const consigneesSet = new Set();
 
-        const option = `<option value="${recordId}">${nombreEmpresa}</option>`;
-        shipperSelect.innerHTML += option;
-        consigneeSelect.innerHTML += option;
-      });
-    } else {
-      // Si la tabla está vacía, opcionalmente podemos dejar una opción informativa
-      shipperSelect.innerHTML = '<option value="">No hay empresas registradas</option>';
-      consigneeSelect.innerHTML = '<option value="">No hay empresas registradas</option>';
-    }
+    data.records.forEach(record => {
+      if (record.fields.Shipper) shippersSet.add(record.fields.Shipper);
+      if (record.fields.Consignee) consigneesSet.add(record.fields.Consignee);
+    });
+
+    shippersSet.forEach(shipper => {
+      shipperSelect.innerHTML += `<option value="${shipper}">${shipper}</option>`;
+    });
+
+    consigneesSet.forEach(consignee => {
+      consigneeSelect.innerHTML += `<option value="${consignee}">${consignee}</option>`;
+    });
 
   } catch (error) {
-    console.error("Error al cargar contactos:", error);
+    console.error("Error al cargar datos:", error);
   }
 }
 
 // Ejecutar al cargar la página
 window.onload = cargarContactos;
 
-// 2. GUARDAR EL NUEVO ENVÍO VINCULADO EN AIRTABLE
+// 2. GUARDAR EL NUEVO ENVÍO DIRECTAMENTE EN AIRTABLE
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
   const blValue = document.getElementById('blNumber').value;
-  const shipperId = document.getElementById('shipperSelect').value;
-  const consigneeId = document.getElementById('consigneeSelect').value;
+  const shipperValue = document.getElementById('shipperSelect').value;
+  const consigneeValue = document.getElementById('consigneeSelect').value;
   const statusMsg = document.getElementById('statusMessage');
 
-  if (!shipperId || !consigneeId) {
-    statusMsg.textContent = "Seleccione un Shipper y un Consignee válidos.";
+  if (!blValue || !shipperValue || !consigneeValue) {
+    statusMsg.textContent = "Por favor complete todos los campos.";
     statusMsg.style.color = "red";
     return;
   }
@@ -73,14 +74,14 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       body: JSON.stringify({
         fields: {
           "Numero de BL": blValue,
-          "Shipper": [shipperId],
-          "Consignee": [consigneeId]
+          "Shipper": shipperValue,
+          "Consignee": consigneeValue
         }
       })
     });
 
     if (response.ok) {
-      statusMsg.textContent = "¡Envío registrado y vinculado con éxito!";
+      statusMsg.textContent = "¡Envío registrado con éxito!";
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
       cargarContactos();
