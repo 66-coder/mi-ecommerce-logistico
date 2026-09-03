@@ -10,7 +10,7 @@ async function cargarContactos() {
   consigneeSelect.innerHTML = '<option value="">Seleccione un Consignee</option>';
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Envios`, {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Registros`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
@@ -62,7 +62,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
   statusMsg.style.color = "#0066cc";
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Envios`, {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Registros`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
