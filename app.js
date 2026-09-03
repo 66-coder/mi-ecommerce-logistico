@@ -1,6 +1,6 @@
 const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
-const TABLE_ID_CONTACTOS = "tblPON_AQUÍ_EL_ID_DE_CONTACTOS"; // Reemplaza con el tbl... de tu tabla Contactos
+const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb"; // Reemplaza con el tbl... de tu tabla Contactos
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E"; // ID de tu tabla Registros
 
 // 1. CARGAR EMPRESAS DINÁMICAMENTE DESDE LA TABLA 'Contactos'
