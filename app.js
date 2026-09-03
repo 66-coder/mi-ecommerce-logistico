@@ -22,7 +22,9 @@ async function cargarContactos() {
     }
 
     const data = await response.json();
-
+    
+    console.log("Datos que llegan de Airtable:", data.records); 
+    
     if (data.records && data.records.length > 0) {
       data.records.forEach(record => {
         // Lee la columna "Name" de tu tabla Contactos
