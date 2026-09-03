@@ -36,7 +36,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
   statusMsg.style.color = "#0066cc";
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Registros`, {
+      const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/tblSlljdVyt77bp7E`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
