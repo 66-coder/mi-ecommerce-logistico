@@ -1,4 +1,4 @@
-const AIRTABLE_TOKEN = "pat26xWPuleRPN9fx.0501fa7b6f95fbcb4d7ed700e22a8d57d688b0b82ca2317c5466be71b3692748"; 
+const AIRTABLE_TOKEN = "patGZFGpijZZ2WsNe.07ee819c0003ae5426f333810cf88784a57f0d875ece63a709e2323128ec7c53"; 
 const BASE_ID = "appZ3owVzxMEYjUKh"; 
 
 console.log("Token actual:", AIRTABLE_TOKEN); // <-- Agrega esta línea temporalmente
