@@ -11,7 +11,7 @@ async function cargarContactos() {
 
   try {
     // REEMPLAZA ESTO CON EL ID EXACTO DE TU TABLA 'CONTACTOS'
-    const TABLE_ID_CONTACTOS = "tblTU_ID_DE_CONTACTOS_AQUI"; 
+    const TABLE_ID_CONTACTOS = "tblSlljdVyt77bp7E"; 
 
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_CONTACTOS}`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
