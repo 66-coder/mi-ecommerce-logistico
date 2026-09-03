@@ -1,5 +1,5 @@
 const AIRTABLE_TOKEN = "pat26xWPuleRPN9fx.0501fa7b6f95fbcb4d7ed700e22a8d57d688b0b82ca2317c5466be71b3692748"; 
-const BASE_ID = "appZ3owVzxMEYjUKh"; 
+
 
 console.log("Token actual:", AIRTABLE_TOKEN);
 // 1. CARGAR LOS CONTACTOS EN LOS SELECTORES
