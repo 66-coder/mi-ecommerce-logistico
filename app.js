@@ -1,5 +1,5 @@
-const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136";
-const BASE_ID = "appZ3owVzxMEYjUKh";
+const AIRTABLE_TOKEN = "patduhWO9m2fvP2HS.2c2d2c49a468a681c9815eb917033be5dce3b0be3e643418fa9b5979f414fdbb";
+const BASE_ID = "appZ3owVzxMEyjUKh";
 const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
