@@ -40,6 +40,14 @@
         <option value="">Cargando consignees...</option>
       </select>
       
+      <label>Estado del Envío:</label>
+      <select id="estadoSelect" required>
+        <option value="Emitido">Emitido</option>
+        <option value="En Tránsito">En Tránsito</option>
+        <option value="Ingresado a Puerto">Ingresado a Puerto</option>
+        <option value="Liberado">Liberado</option>
+      </select>
+      
       <button type="submit">Guardar Envío en Airtable</button>
     </form>
     <p id="statusMessage"></p>
