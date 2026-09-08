@@ -4,7 +4,7 @@ const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
 const contactosMap = {};
-let registrosCache = []; // Para filtrar rápido sin pedirle a Airtable a cada rato
+let registrosCache = [];
 
 // 1. CARGAR EMPRESAS Y GUARDAR MAPA DE NOMBRES
 async function cargarContactos() {
@@ -50,7 +50,20 @@ function obtenerNombreEmpresa(valor) {
   return contactosMap[valor] || valor;
 }
 
-// Renderizar tabla a partir de un arreglo de datos
+// Función para asignar un color a cada estado en la tabla
+function obtenerEstiloEstado(estado) {
+  switch (estado) {
+    case 'En Tránsito':
+      return 'background: #fff3cd; color: #856404;'; // Amarillo
+    case 'Ingresado a Puerto':
+      return 'background: #d1ecf1; color: #0c5460;'; // Azul claro
+    case 'Liberado':
+      return 'background: #d4edda; color: #155724;'; // Verde
+    default:
+      return 'background: #e6f0fa; color: #0066cc;'; // Azul por defecto (Emitido)
+  }
+}
+
 function renderizarTabla(lista) {
   const tablaBody = document.getElementById('tablaRegistrosBody');
   if (!tablaBody) return;
@@ -63,13 +76,14 @@ function renderizarTabla(lista) {
       const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
       const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
       const estado = record.fields["Estado"] || "Emitido";
+      const estilo = obtenerEstiloEstado(estado);
 
       tablaBody.innerHTML += `
         <tr>
           <td>${bl}</td>
           <td>${shipper}</td>
           <td>${consignee}</td>
-          <td><span style="background: #e6f0fa; color: #0066cc; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${estado}</span></td>
+          <td><span style="${estilo} padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${estado}</span></td>
         </tr>
       `;
     });
@@ -111,7 +125,8 @@ document.getElementById('buscarBL').addEventListener('input', function(e) {
     const bl = (record.fields["Numero de BL"] || "").toLowerCase();
     const shipper = obtenerNombreEmpresa(record.fields["Shipper"]).toLowerCase();
     const consignee = obtenerNombreEmpresa(record.fields["Consignee"]).toLowerCase();
-    return bl.includes(busqueda) || shipper.includes(busqueda) || consignee.includes(busqueda);
+    const estado = (record.fields["Estado"] || "").toLowerCase();
+    return bl.includes(busqueda) || shipper.includes(busqueda) || consignee.includes(busqueda) || estado.includes(busqueda);
   });
   renderizarTabla(filtrados);
 });
@@ -121,16 +136,17 @@ window.onload = async function() {
   await cargarRegistros();
 };
 
-// 3. GUARDAR ENVÍO CON VALIDACIÓN
+// 3. GUARDAR ENVÍO CON ESTADO
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
   const blValue = document.getElementById('blNumber').value.trim();
   const shipperValue = document.getElementById('shipperSelect').value;
   const consigneeValue = document.getElementById('consigneeSelect').value;
+  const estadoValue = document.getElementById('estadoSelect').value;
   const statusMsg = document.getElementById('statusMessage');
 
-  if (!blValue || !shipperValue || !consigneeValue) {
+  if (!blValue || !shipperValue || !consigneeValue || !estadoValue) {
     statusMsg.textContent = "Por favor complete todos los campos.";
     statusMsg.style.color = "red";
     return;
@@ -156,7 +172,8 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
         fields: {
           "Numero de BL": blValue,
           "Shipper": shipperValue,
-          "Consignee": consigneeValue
+          "Consignee": consigneeValue,
+          "Estado": estadoValue
         },
         typecast: true
       })
