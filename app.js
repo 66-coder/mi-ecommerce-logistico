@@ -40,9 +40,58 @@ async function cargarContactos() {
   }
 }
 
-window.onload = cargarContactos;
+// 2. CARGAR REGISTROS EMITIDOS DESDE LA TABLA 'Registros'
+async function cargarRegistros() {
+  const tablaBody = document.getElementById('tablaRegistrosBody');
+  if (!tablaBody) return;
 
-// 2. GUARDAR NUEVO ENVÍO DIRECTAMENTE EN LA TABLA 'Registros'
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+    });
+
+    if (!response.ok) throw new Error("Error al obtener los registros.");
+
+    const data = await response.json();
+    tablaBody.innerHTML = '';
+
+    if (data.records && data.records.length > 0) {
+      data.records.forEach(record => {
+        const bl = record.fields["Numero de BL"] || "S/N";
+        
+        // Manejo de arreglos o cadenas en campos enlazados
+        const shipper = Array.isArray(record.fields["Shipper"]) 
+          ? record.fields["Shipper"].join(', ') 
+          : (record.fields["Shipper"] || "-");
+          
+        const consignee = Array.isArray(record.fields["Consignee"]) 
+          ? record.fields["Consignee"].join(', ') 
+          : (record.fields["Consignee"] || "-");
+
+        tablaBody.innerHTML += `
+          <tr>
+            <td>${bl}</td>
+            <td>${shipper}</td>
+            <td>${consignee}</td>
+          </tr>
+        `;
+      });
+    } else {
+      tablaBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay envíos registrados.</td></tr>';
+    }
+  } catch (error) {
+    console.error("Error al cargar la tabla:", error);
+    tablaBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: red;">Error al cargar registros.</td></tr>';
+  }
+}
+
+// Ejecutar ambas cargas al iniciar la página
+window.onload = function() {
+  cargarContactos();
+  cargarRegistros();
+};
+
+// 3. GUARDAR NUEVO ENVÍO DIRECTAMENTE EN LA TABLA 'Registros'
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
@@ -81,6 +130,9 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       statusMsg.textContent = "¡Envío registrado con éxito!";
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
+      
+      // Actualizar la tabla en tiempo real sin recargar la página
+      cargarRegistros();
     } else {
       const errorData = await response.json();
       console.error(errorData);
