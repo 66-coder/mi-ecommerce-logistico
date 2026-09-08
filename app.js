@@ -36,9 +36,6 @@ async function cargarContactos() {
     }
   } catch (error) {
     console.error("Error al cargar empresas:", error);
-    const empresaPrueba = '<option value="Empresa A">Empresa A (Modo Seguro)</option>';
-    if (shipperSelect) shipperSelect.innerHTML += empresaPrueba;
-    if (consigneeSelect) consigneeSelect.innerHTML += empresaPrueba;
   }
 }
 
@@ -50,7 +47,7 @@ function obtenerNombreEmpresa(valor) {
   return contactosMap[valor] || valor;
 }
 
-// ACTUALIZAR TARJETAS DE ESTADÍSTICAS (KPIs)
+// ACTUALIZAR CONTADORES SUPERIORES (KPIs)
 function actualizarKPIs(lista) {
   const kpiTotal = document.getElementById('kpiTotal');
   const kpiTransito = document.getElementById('kpiTransito');
@@ -70,7 +67,7 @@ function actualizarKPIs(lista) {
   kpiLiberados.textContent = liberados;
 }
 
-// MÓDULO: EDICIÓN RÁPIDA DE ESTADO (PATCH)
+// EDICIÓN EN TIEMPO REAL DE ESTADO (PATCH)
 async function cambiarEstadoRegistro(idRecord, nuevoEstado) {
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}/${idRecord}`, {
@@ -88,16 +85,16 @@ async function cambiarEstadoRegistro(idRecord, nuevoEstado) {
     if (response.ok) {
       await cargarRegistros();
     } else {
-      alert("Error al actualizar el estado en Airtable.");
+      alert("Error al actualizar estado en Airtable.");
     }
   } catch (error) {
-    console.error("Error al cambiar estado:", error);
+    console.error("Error cambiando estado:", error);
   }
 }
 
-// MÓDULO: ELIMINACIÓN DE REGISTRO (DELETE)
+// ELIMINAR REGISTRO DE AIRTABLE (DELETE)
 async function eliminarRegistro(idRecord, blNumber) {
-  if (!confirm(`¿Está seguro de que desea eliminar el registro ${blNumber}?`)) return;
+  if (!confirm(`¿Desea eliminar definitivamente el BL ${blNumber}?`)) return;
 
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}/${idRecord}`, {
@@ -202,18 +199,19 @@ function renderizarTabla(lista) {
   }
 }
 
-// CARGAR REGISTROS EMITIDOS
+// 2. CARGAR REGISTROS EMITIDOS
 async function cargarRegistros() {
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
-    if (!response.ok) throw new Error("Error al obtener los registros.");
+    if (!response.ok) throw new Error("Error al obtener registros.");
 
     const data = await response.json();
     registrosCache = data.records || [];
     
+    // Actualizamos KPIs y Tabla
     actualizarKPIs(registrosCache);
     renderizarTabla(registrosCache);
   } catch (error) {
@@ -225,94 +223,93 @@ async function cargarRegistros() {
   }
 }
 
-// Auto-formato del BL a Mayúsculas
-const inputBL = document.getElementById('blNumber');
-if (inputBL) {
-  inputBL.addEventListener('input', function() {
-    this.value = this.value.toUpperCase();
-  });
-}
-
-// Buscador en tiempo real
-const inputBuscar = document.getElementById('buscarBL');
-if (inputBuscar) {
-  inputBuscar.addEventListener('input', function(e) {
-    const busqueda = e.target.value.toLowerCase();
-    const filtrados = registrosCache.filter(record => {
-      const bl = (record.fields["Numero de BL"] || "").toLowerCase();
-      const shipper = obtenerNombreEmpresa(record.fields["Shipper"]).toLowerCase();
-      const consignee = obtenerNombreEmpresa(record.fields["Consignee"]).toLowerCase();
-      const estado = (record.fields["Estado"] || "").toLowerCase();
-      return bl.includes(busqueda) || shipper.includes(busqueda) || consignee.includes(busqueda) || estado.includes(busqueda);
-    });
-    renderizarTabla(filtrados);
-  });
-}
-
+// Listeners e Inicialización
 window.onload = async function() {
   await cargarContactos();
   await cargarRegistros();
-};
 
-// GUARDAR NUEVO ENVÍO
-const formShipping = document.getElementById('shippingForm');
-if (formShipping) {
-  formShipping.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const blValue = document.getElementById('blNumber').value.trim();
-    const shipperValue = document.getElementById('shipperSelect').value;
-    const consigneeValue = document.getElementById('consigneeSelect').value;
-    const estadoValue = document.getElementById('estadoSelect').value;
-    const statusMsg = document.getElementById('statusMessage');
+  const inputBL = document.getElementById('blNumber');
+  if (inputBL) {
+    inputBL.addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+  }
 
-    if (!blValue || !shipperValue || !consigneeValue || !estadoValue) {
-      statusMsg.textContent = "Por favor complete todos los campos.";
-      statusMsg.style.color = "red";
-      return;
-    }
-
-    if (shipperValue === consigneeValue) {
-      statusMsg.textContent = "El Shipper y el Consignee no pueden ser la misma empresa.";
-      statusMsg.style.color = "red";
-    }
-
-    statusMsg.textContent = "Guardando envío...";
-    statusMsg.style.color = "#0066cc";
-
-    try {
-      const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            "Numero de BL": blValue,
-            "Shipper": shipperValue,
-            "Consignee": consigneeValue,
-            "Estado": estadoValue
-          },
-          typecast: true
-        })
+  const inputBuscar = document.getElementById('buscarBL');
+  if (inputBuscar) {
+    inputBuscar.addEventListener('input', function(e) {
+      const busqueda = e.target.value.toLowerCase();
+      const filtrados = registrosCache.filter(record => {
+        const bl = (record.fields["Numero de BL"] || "").toLowerCase();
+        const shipper = obtenerNombreEmpresa(record.fields["Shipper"]).toLowerCase();
+        const consignee = obtenerNombreEmpresa(record.fields["Consignee"]).toLowerCase();
+        const estado = (record.fields["Estado"] || "").toLowerCase();
+        return bl.includes(busqueda) || shipper.includes(busqueda) || consignee.includes(busqueda) || estado.includes(busqueda);
       });
+      renderizarTabla(filtrados);
+    });
+  }
 
-      if (response.ok) {
-        statusMsg.textContent = "¡Envío registrado con éxito!";
-        statusMsg.style.color = "green";
-        document.getElementById('shippingForm').reset();
-        await cargarRegistros();
-      } else {
-        const errorData = await response.json();
-        console.error(errorData);
-        statusMsg.textContent = "Error al guardar. Revisa la consola.";
+  const formShipping = document.getElementById('shippingForm');
+  if (formShipping) {
+    formShipping.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const blValue = document.getElementById('blNumber').value.trim();
+      const shipperValue = document.getElementById('shipperSelect').value;
+      const consigneeValue = document.getElementById('consigneeSelect').value;
+      const estadoValue = document.getElementById('estadoSelect').value;
+      const statusMsg = document.getElementById('statusMessage');
+
+      if (!blValue || !shipperValue || !consigneeValue || !estadoValue) {
+        statusMsg.textContent = "Por favor complete todos los campos.";
+        statusMsg.style.color = "red";
+        return;
+      }
+
+      if (shipperValue === consigneeValue) {
+        statusMsg.textContent = "El Shipper y el Consignee no pueden ser la misma empresa.";
+        statusMsg.style.color = "red";
+        return;
+      }
+
+      statusMsg.textContent = "Guardando envío...";
+      statusMsg.style.color = "#0066cc";
+
+      try {
+        const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fields: {
+              "Numero de BL": blValue,
+              "Shipper": shipperValue,
+              "Consignee": consigneeValue,
+              "Estado": estadoValue
+            },
+            typecast: true
+          })
+        });
+
+        if (response.ok) {
+          statusMsg.textContent = "¡Envío registrado con éxito!";
+          statusMsg.style.color = "green";
+          document.getElementById('shippingForm').reset();
+          await cargarRegistros();
+        } else {
+          const errorData = await response.json();
+          console.error(errorData);
+          statusMsg.textContent = "Error al guardar. Revisa la consola.";
+          statusMsg.style.color = "red";
+        }
+      } catch (error) {
+        console.error(error);
+        statusMsg.textContent = "Error de red.";
         statusMsg.style.color = "red";
       }
-    } catch (error) {
-      console.error(error);
-      statusMsg.textContent = "Error de red.";
-      statusMsg.style.color = "red";
-    }
-  });
-}
+    });
+  }
+};
