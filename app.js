@@ -4,6 +4,7 @@ const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
 const contactosMap = {};
+let registrosCache = []; // Para filtrar rápido sin pedirle a Airtable a cada rato
 
 // 1. CARGAR EMPRESAS Y GUARDAR MAPA DE NOMBRES
 async function cargarContactos() {
@@ -49,11 +50,36 @@ function obtenerNombreEmpresa(valor) {
   return contactosMap[valor] || valor;
 }
 
-// 2. CARGAR REGISTROS EMITIDOS
-async function cargarRegistros() {
+// Renderizar tabla a partir de un arreglo de datos
+function renderizarTabla(lista) {
   const tablaBody = document.getElementById('tablaRegistrosBody');
   if (!tablaBody) return;
 
+  tablaBody.innerHTML = '';
+
+  if (lista.length > 0) {
+    lista.forEach(record => {
+      const bl = record.fields["Numero de BL"] || "S/N";
+      const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
+      const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
+      const estado = record.fields["Estado"] || "Emitido";
+
+      tablaBody.innerHTML += `
+        <tr>
+          <td>${bl}</td>
+          <td>${shipper}</td>
+          <td>${consignee}</td>
+          <td><span style="background: #e6f0fa; color: #0066cc; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${estado}</span></td>
+        </tr>
+      `;
+    });
+  } else {
+    tablaBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No se encontraron registros.</td></tr>';
+  }
+}
+
+// 2. CARGAR REGISTROS EMITIDOS
+async function cargarRegistros() {
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
@@ -62,34 +88,32 @@ async function cargarRegistros() {
     if (!response.ok) throw new Error("Error al obtener los registros.");
 
     const data = await response.json();
-    tablaBody.innerHTML = '';
-
-    if (data.records && data.records.length > 0) {
-      data.records.forEach(record => {
-        const bl = record.fields["Numero de BL"] || "S/N";
-        const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
-        const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
-
-        tablaBody.innerHTML += `
-          <tr>
-            <td>${bl}</td>
-            <td>${shipper}</td>
-            <td>${consignee}</td>
-          </tr>
-        `;
-      });
-    } else {
-      tablaBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay envíos registrados.</td></tr>';
-    }
+    registrosCache = data.records || [];
+    renderizarTabla(registrosCache);
   } catch (error) {
     console.error("Error al cargar la tabla:", error);
-    tablaBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: red;">Error al cargar registros.</td></tr>';
+    const tablaBody = document.getElementById('tablaRegistrosBody');
+    if (tablaBody) {
+      tablaBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error al cargar registros.</td></tr>';
+    }
   }
 }
 
 // Auto-formato del BL a Mayúsculas
-document.getElementById('blNumber').addEventListener('input', function(e) {
+document.getElementById('blNumber').addEventListener('input', function() {
   this.value = this.value.toUpperCase();
+});
+
+// Buscador en tiempo real
+document.getElementById('buscarBL').addEventListener('input', function(e) {
+  const busqueda = e.target.value.toLowerCase();
+  const filtrados = registrosCache.filter(record => {
+    const bl = (record.fields["Numero de BL"] || "").toLowerCase();
+    const shipper = obtenerNombreEmpresa(record.fields["Shipper"]).toLowerCase();
+    const consignee = obtenerNombreEmpresa(record.fields["Consignee"]).toLowerCase();
+    return bl.includes(busqueda) || shipper.includes(busqueda) || consignee.includes(busqueda);
+  });
+  renderizarTabla(filtrados);
 });
 
 window.onload = async function() {
@@ -112,7 +136,6 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
     return;
   }
 
-  // VALIDACIÓN: Shipper y Consignee no pueden ser iguales
   if (shipperValue === consigneeValue) {
     statusMsg.textContent = "El Shipper y el Consignee no pueden ser la misma empresa.";
     statusMsg.style.color = "red";
