@@ -3,7 +3,6 @@ const BASE_ID = "appZ3owVzxMEyjUKh";
 const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
-// Guardaremos el mapa ID -> Nombre de empresa aquí
 const contactosMap = {};
 
 // 1. CARGAR EMPRESAS Y GUARDAR MAPA DE NOMBRES
@@ -27,9 +26,7 @@ async function cargarContactos() {
       data.records.forEach(record => {
         const nombreEmpresa = record.fields.Name;
         if (nombreEmpresa) {
-          // Guardamos el ID de Airtable mapeado a su nombre real
           contactosMap[record.id] = nombreEmpresa;
-
           const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
           shipperSelect.innerHTML += option;
           consigneeSelect.innerHTML += option;
@@ -44,7 +41,6 @@ async function cargarContactos() {
   }
 }
 
-// Auxiliar para convertir recXXXXXXXX a Nombre o devolver la cadena tal cual
 function obtenerNombreEmpresa(valor) {
   if (!valor) return "-";
   if (Array.isArray(valor)) {
@@ -71,8 +67,6 @@ async function cargarRegistros() {
     if (data.records && data.records.length > 0) {
       data.records.forEach(record => {
         const bl = record.fields["Numero de BL"] || "S/N";
-        
-        // Traducimos los IDs o textos
         const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
         const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
 
@@ -93,23 +87,34 @@ async function cargarRegistros() {
   }
 }
 
-// Cargar en orden: primero contactos, luego registros
+// Auto-formato del BL a Mayúsculas
+document.getElementById('blNumber').addEventListener('input', function(e) {
+  this.value = this.value.toUpperCase();
+});
+
 window.onload = async function() {
   await cargarContactos();
   await cargarRegistros();
 };
 
-// 3. GUARDAR NUEVO ENVÍO DIRECTAMENTE
+// 3. GUARDAR ENVÍO CON VALIDACIÓN
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
-  const blValue = document.getElementById('blNumber').value;
+  const blValue = document.getElementById('blNumber').value.trim();
   const shipperValue = document.getElementById('shipperSelect').value;
   const consigneeValue = document.getElementById('consigneeSelect').value;
   const statusMsg = document.getElementById('statusMessage');
 
   if (!blValue || !shipperValue || !consigneeValue) {
     statusMsg.textContent = "Por favor complete todos los campos.";
+    statusMsg.style.color = "red";
+    return;
+  }
+
+  // VALIDACIÓN: Shipper y Consignee no pueden ser iguales
+  if (shipperValue === consigneeValue) {
+    statusMsg.textContent = "El Shipper y el Consignee no pueden ser la misma empresa.";
     statusMsg.style.color = "red";
     return;
   }
@@ -138,7 +143,6 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       statusMsg.textContent = "¡Envío registrado con éxito!";
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
-      
       await cargarRegistros();
     } else {
       const errorData = await response.json();
