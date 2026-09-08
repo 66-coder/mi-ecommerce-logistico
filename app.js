@@ -1,7 +1,7 @@
-const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136"; 
-const BASE_ID = "appZ3owVzxMEYjUKh"; 
-const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb"; // Reemplaza con el tbl... de tu tabla Contactos
-const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E"; // ID de tu tabla Registros
+const AIRTABLE_TOKEN = "patH2xP7hxIs6njrP.2116e716eb3ba5d01b7da43427f3b74f4901468d3211a14d46aac8c65313d136";
+const BASE_ID = "appZ3owVzxMEYjUKh";
+const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
+const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
 // 1. CARGAR EMPRESAS DINÁMICAMENTE DESDE LA TABLA 'Contactos'
 async function cargarContactos() {
@@ -24,7 +24,7 @@ async function cargarContactos() {
 
     if (data.records && data.records.length > 0) {
       data.records.forEach(record => {
-        const nombreEmpresa = record.fields.Name; // Asegúrate de que tu columna en Airtable se llame 'Name'
+        const nombreEmpresa = record.fields.Name;
         if (nombreEmpresa) {
           const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
           shipperSelect.innerHTML += option;
@@ -34,14 +34,12 @@ async function cargarContactos() {
     }
   } catch (error) {
     console.error("Error al cargar empresas:", error);
-    // Fallback por si acaso la red falla
     const empresaPrueba = '<option value="Empresa A">Empresa A (Modo Seguro)</option>';
     shipperSelect.innerHTML += empresaPrueba;
     consigneeSelect.innerHTML += empresaPrueba;
   }
 }
 
-// Cargar los contactos automáticamente al abrir la página
 window.onload = cargarContactos;
 
 // 2. GUARDAR NUEVO ENVÍO DIRECTAMENTE EN LA TABLA 'Registros'
@@ -75,7 +73,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
           "Shipper": shipperValue,
           "Consignee": consigneeValue
         },
-        typecast: true // Obliga a Airtable a aceptar y vincular el texto perfectamente
+        typecast: true
       })
     });
 
