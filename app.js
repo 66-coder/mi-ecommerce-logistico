@@ -3,7 +3,10 @@ const BASE_ID = "appZ3owVzxMEyjUKh";
 const TABLE_ID_CONTACTOS = "tblW3ULDFeiHdkvqb";
 const TABLE_ID_REGISTROS = "tblSlljdVyt77bp7E";
 
-// 1. CARGAR EMPRESAS DINÁMICAMENTE DESDE LA TABLA 'Contactos'
+// Guardaremos el mapa ID -> Nombre de empresa aquí
+const contactosMap = {};
+
+// 1. CARGAR EMPRESAS Y GUARDAR MAPA DE NOMBRES
 async function cargarContactos() {
   const shipperSelect = document.getElementById('shipperSelect');
   const consigneeSelect = document.getElementById('consigneeSelect');
@@ -16,9 +19,7 @@ async function cargarContactos() {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
-    if (!response.ok) {
-      throw new Error(`Error al conectar con Contactos (Código: ${response.status})`);
-    }
+    if (!response.ok) throw new Error("Error al conectar con Contactos");
 
     const data = await response.json();
 
@@ -26,6 +27,9 @@ async function cargarContactos() {
       data.records.forEach(record => {
         const nombreEmpresa = record.fields.Name;
         if (nombreEmpresa) {
+          // Guardamos el ID de Airtable mapeado a su nombre real
+          contactosMap[record.id] = nombreEmpresa;
+
           const option = `<option value="${nombreEmpresa}">${nombreEmpresa}</option>`;
           shipperSelect.innerHTML += option;
           consigneeSelect.innerHTML += option;
@@ -40,14 +44,22 @@ async function cargarContactos() {
   }
 }
 
-// 2. CARGAR REGISTROS EMITIDOS DESDE LA TABLA 'Registros' (Con nombres legibles)
+// Auxiliar para convertir recXXXXXXXX a Nombre o devolver la cadena tal cual
+function obtenerNombreEmpresa(valor) {
+  if (!valor) return "-";
+  if (Array.isArray(valor)) {
+    return valor.map(v => contactosMap[v] || v).join(', ');
+  }
+  return contactosMap[valor] || valor;
+}
+
+// 2. CARGAR REGISTROS EMITIDOS
 async function cargarRegistros() {
   const tablaBody = document.getElementById('tablaRegistrosBody');
   if (!tablaBody) return;
 
   try {
-    // Agregamos cellFormat=string y userLocale=true para traer los nombres reales
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}?cellFormat=string&userLocale=true`, {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
@@ -60,9 +72,9 @@ async function cargarRegistros() {
       data.records.forEach(record => {
         const bl = record.fields["Numero de BL"] || "S/N";
         
-        // Al usar cellFormat=string, Airtable entrega directamente el texto legible
-        const shipper = record.fields["Shipper"] || "-";
-        const consignee = record.fields["Consignee"] || "-";
+        // Traducimos los IDs o textos
+        const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
+        const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
 
         tablaBody.innerHTML += `
           <tr>
@@ -81,13 +93,13 @@ async function cargarRegistros() {
   }
 }
 
-// Ejecutar ambas cargas al iniciar la página
-window.onload = function() {
-  cargarContactos();
-  cargarRegistros();
+// Cargar en orden: primero contactos, luego registros
+window.onload = async function() {
+  await cargarContactos();
+  await cargarRegistros();
 };
 
-// 3. GUARDAR NUEVO ENVÍO DIRECTAMENTE EN LA TABLA 'Registros'
+// 3. GUARDAR NUEVO ENVÍO DIRECTAMENTE
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
@@ -127,8 +139,7 @@ document.getElementById('shippingForm').addEventListener('submit', async functio
       statusMsg.style.color = "green";
       document.getElementById('shippingForm').reset();
       
-      // Actualizar la tabla en tiempo real sin recargar la página
-      cargarRegistros();
+      await cargarRegistros();
     } else {
       const errorData = await response.json();
       console.error(errorData);
