@@ -56,15 +56,13 @@ function actualizarKPIs(lista) {
 
   if (!kpiTotal) return;
 
-  kpiTotal.textContent = lista.length;
-  
-  const transito = lista.filter(r => (r.fields["Estado"] || "") === "En Tránsito").length;
-  const puerto = lista.filter(r => (r.fields["Estado"] || "") === "Ingresado a Puerto").length;
-  const liberados = lista.filter(r => (r.fields["Estado"] || "") === "Liberado").length;
+  const listaActiva = lista.filter(r => (r.fields["Estado"] || "") !== "Cancelado");
 
-  kpiTransito.textContent = transito;
-  kpiPuerto.textContent = puerto;
-  kpiLiberados.textContent = liberados;
+  kpiTotal.textContent = listaActiva.length;
+  
+  kpiTransito.textContent = listaActiva.filter(r => (r.fields["Estado"] || "") === "En Tránsito").length;
+  kpiPuerto.textContent = listaActiva.filter(r => (r.fields["Estado"] || "") === "Ingresado a Puerto").length;
+  kpiLiberados.textContent = listaActiva.filter(r => (r.fields["Estado"] || "") === "Liberado").length;
 }
 
 // EDICIÓN EN TIEMPO REAL DE ESTADO (PATCH)
@@ -92,23 +90,30 @@ async function cambiarEstadoRegistro(idRecord, nuevoEstado) {
   }
 }
 
-// ELIMINAR REGISTRO DE AIRTABLE (DELETE)
+// ELIMINACIÓN/CANCELACIÓN LÓGICA DE REGISTRO
 async function eliminarRegistro(idRecord, blNumber) {
-  if (!confirm(`¿Desea eliminar definitivamente el BL ${blNumber}?`)) return;
+  if (!confirm(`¿Desea cancelar el BL ${blNumber}?`)) return;
 
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}/${idRecord}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: { "Estado": "Cancelado" },
+        typecast: true
+      })
     });
 
     if (response.ok) {
       await cargarRegistros();
     } else {
-      alert("Error al eliminar el registro.");
+      alert("Error al cancelar el registro.");
     }
   } catch (error) {
-    console.error("Error al eliminar:", error);
+    console.error("Error al cancelar:", error);
   }
 }
 
@@ -164,10 +169,13 @@ function renderizarTabla(lista) {
   const tablaBody = document.getElementById('tablaRegistrosBody');
   if (!tablaBody) return;
 
+  // Filtrar registros que no estén cancelados
+  const listaActiva = lista.filter(r => (r.fields["Estado"] || "") !== "Cancelado");
+
   tablaBody.innerHTML = '';
 
-  if (lista.length > 0) {
-    lista.forEach(record => {
+  if (listaActiva.length > 0) {
+    listaActiva.forEach(record => {
       const idRecord = record.id;
       const bl = record.fields["Numero de BL"] || "S/N";
       const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
@@ -198,7 +206,6 @@ function renderizarTabla(lista) {
     tablaBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No se encontraron registros.</td></tr>';
   }
 }
-
 // 2. CARGAR REGISTROS EMITIDOS
 async function cargarRegistros() {
   try {
