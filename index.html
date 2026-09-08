@@ -45,20 +45,25 @@
     <p id="statusMessage"></p>
   </div>
 
-  <!-- 2. TABLA DE BLs EMITIDOS (NUEVO MÓDULO) -->
+ <!-- 2. TABLA DE BLs EMITIDOS CON BUSCADOR -->
   <div class="form-card">
     <h2>Bill of Ladings Emitidos</h2>
+    
+    <label for="buscarBL">Buscar BL o Empresa:</label>
+    <input type="text" id="buscarBL" placeholder="Escribe para filtrar...">
+
     <table>
       <thead>
         <tr>
           <th>Número de BL</th>
           <th>Shipper</th>
           <th>Consignee</th>
+          <th>Estado</th>
         </tr>
       </thead>
       <tbody id="tablaRegistrosBody">
         <tr>
-          <td colspan="3" style="text-align: center;">Cargando envíos...</td>
+          <td colspan="4" style="text-align: center;">Cargando envíos...</td>
         </tr>
       </tbody>
     </table>
