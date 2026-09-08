@@ -40,13 +40,14 @@ async function cargarContactos() {
   }
 }
 
-// 2. CARGAR REGISTROS EMITIDOS DESDE LA TABLA 'Registros'
+// 2. CARGAR REGISTROS EMITIDOS DESDE LA TABLA 'Registros' (Con nombres legibles)
 async function cargarRegistros() {
   const tablaBody = document.getElementById('tablaRegistrosBody');
   if (!tablaBody) return;
 
   try {
-    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
+    // Agregamos cellFormat=string y userLocale=true para traer los nombres reales
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}?cellFormat=string&userLocale=true`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
 
@@ -59,14 +60,9 @@ async function cargarRegistros() {
       data.records.forEach(record => {
         const bl = record.fields["Numero de BL"] || "S/N";
         
-        // Manejo de arreglos o cadenas en campos enlazados
-        const shipper = Array.isArray(record.fields["Shipper"]) 
-          ? record.fields["Shipper"].join(', ') 
-          : (record.fields["Shipper"] || "-");
-          
-        const consignee = Array.isArray(record.fields["Consignee"]) 
-          ? record.fields["Consignee"].join(', ') 
-          : (record.fields["Consignee"] || "-");
+        // Al usar cellFormat=string, Airtable entrega directamente el texto legible
+        const shipper = record.fields["Shipper"] || "-";
+        const consignee = record.fields["Consignee"] || "-";
 
         tablaBody.innerHTML += `
           <tr>
