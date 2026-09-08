@@ -50,20 +50,64 @@ function obtenerNombreEmpresa(valor) {
   return contactosMap[valor] || valor;
 }
 
-function obtenerEstiloEstado(estado) {
-  switch (estado) {
-    case 'En Tránsito':
-      return 'background: #fff3cd; color: #856404;';
-    case 'Ingresado a Puerto':
-      return 'background: #d1ecf1; color: #0c5460;';
-    case 'Liberado':
-      return 'background: #d4edda; color: #155724;';
-    default:
-      return 'background: #e6f0fa; color: #0066cc;';
+// ACTUALIZAR TARJETAS DE ESTADÍSTICAS (KPIs)
+function actualizarKPIs(lista) {
+  document.getElementById('kpiTotal').textContent = lista.length;
+  
+  const transito = lista.filter(r => (r.fields["Estado"] || "") === "En Tránsito").length;
+  const puerto = lista.filter(r => (r.fields["Estado"] || "") === "Ingresado a Puerto").length;
+  const liberados = lista.filter(r => (r.fields["Estado"] || "") === "Liberado").length;
+
+  document.getElementById('kpiTransito').textContent = transito;
+  document.getElementById('kpiPuerto').textContent = puerto;
+  document.getElementById('kpiLiberados').textContent = liberados;
+}
+
+// MÓDULO: EDICIÓN RÁPIDA DE ESTADO (PATCH)
+async function cambiarEstadoRegistro(idRecord, nuevoEstado) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}/${idRecord}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: { "Estado": nuevoEstado }
+      })
+    });
+
+    if (response.ok) {
+      await cargarRegistros();
+    } else {
+      alert("Error al actualizar el estado en Airtable.");
+    }
+  } catch (error) {
+    console.error("Error al cambiar estado:", error);
   }
 }
 
-// 2. FUNCIÓN PARA GENERAR E IMPRIMIR EL DOCUMENTO BL EN PDF
+// MÓDULO: ELIMINACIÓN DE REGISTRO (DELETE)
+async function eliminarRegistro(idRecord, blNumber) {
+  if (!confirm(`¿Está seguro de que desea eliminar el registro ${blNumber}?`)) return;
+
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}/${idRecord}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+    });
+
+    if (response.ok) {
+      await cargarRegistros();
+    } else {
+      alert("Error al eliminar el registro.");
+    }
+  } catch (error) {
+    console.error("Error al eliminar:", error);
+  }
+}
+
+// GENERAR DOCUMENTO PDF EN PESTAÑA NUEVA
 function imprimirBL(bl, shipper, consignee, estado) {
   const ventanaImpresion = window.open('', '_blank');
   ventanaImpresion.document.write(`
@@ -119,22 +163,28 @@ function renderizarTabla(lista) {
 
   if (lista.length > 0) {
     lista.forEach(record => {
+      const idRecord = record.id;
       const bl = record.fields["Numero de BL"] || "S/N";
       const shipper = obtenerNombreEmpresa(record.fields["Shipper"]);
       const consignee = obtenerNombreEmpresa(record.fields["Consignee"]);
-      const estado = record.fields["Estado"] || "Emitido";
-      const estilo = obtenerEstiloEstado(estado);
+      const estadoActual = record.fields["Estado"] || "Emitido";
 
       tablaBody.innerHTML += `
         <tr>
-          <td>${bl}</td>
+          <td><strong>${bl}</strong></td>
           <td>${shipper}</td>
           <td>${consignee}</td>
-          <td><span style="${estilo} padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${estado}</span></td>
           <td>
-            <button type="button" onclick="imprimirBL('${bl}', '${shipper}', '${consignee}', '${estado}')" style="background-color: #28a745; color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 0;">
-              Imprimir PDF
-            </button>
+            <select class="select-estado-tabla" onchange="cambiarEstadoRegistro('${idRecord}', this.value)">
+              <option value="Emitido" ${estadoActual === 'Emitido' ? 'selected' : ''}>Emitido</option>
+              <option value="En Tránsito" ${estadoActual === 'En Tránsito' ? 'selected' : ''}>En Tránsito</option>
+              <option value="Ingresado a Puerto" ${estadoActual === 'Ingresado a Puerto' ? 'selected' : ''}>Ingresado a Puerto</option>
+              <option value="Liberado" ${estadoActual === 'Liberado' ? 'selected' : ''}>Liberado</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn-action btn-pdf" onclick="imprimirBL('${bl}', '${shipper}', '${consignee}', '${estadoActual}')">PDF</button>
+            <button class="btn-action btn-delete" onclick="eliminarRegistro('${idRecord}', '${bl}')">Eliminar</button>
           </td>
         </tr>
       `;
@@ -155,6 +205,8 @@ async function cargarRegistros() {
 
     const data = await response.json();
     registrosCache = data.records || [];
+    
+    actualizarKPIs(registrosCache);
     renderizarTabla(registrosCache);
   } catch (error) {
     console.error("Error al cargar la tabla:", error);
@@ -188,7 +240,7 @@ window.onload = async function() {
   await cargarRegistros();
 };
 
-// GUARDAR ENVÍO CON ESTADO
+// GUARDAR NUEVO ENVÍO
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
