@@ -50,18 +50,65 @@ function obtenerNombreEmpresa(valor) {
   return contactosMap[valor] || valor;
 }
 
-// Función para asignar un color a cada estado en la tabla
 function obtenerEstiloEstado(estado) {
   switch (estado) {
     case 'En Tránsito':
-      return 'background: #fff3cd; color: #856404;'; // Amarillo
+      return 'background: #fff3cd; color: #856404;';
     case 'Ingresado a Puerto':
-      return 'background: #d1ecf1; color: #0c5460;'; // Azul claro
+      return 'background: #d1ecf1; color: #0c5460;';
     case 'Liberado':
-      return 'background: #d4edda; color: #155724;'; // Verde
+      return 'background: #d4edda; color: #155724;';
     default:
-      return 'background: #e6f0fa; color: #0066cc;'; // Azul por defecto (Emitido)
+      return 'background: #e6f0fa; color: #0066cc;';
   }
+}
+
+// 2. FUNCIÓN PARA GENERAR E IMPRIMIR EL DOCUMENTO BL EN PDF
+function imprimirBL(bl, shipper, consignee, estado) {
+  const ventanaImpresion = window.open('', '_blank');
+  ventanaImpresion.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Documento BL - ${bl}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #0066cc; padding-bottom: 10px; margin-bottom: 30px; }
+        .title { font-size: 22px; font-weight: bold; color: #0066cc; }
+        .box { border: 1px solid #ccc; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .field { margin-bottom: 10px; font-size: 16px; }
+        .label { font-weight: bold; }
+        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="title">BILL OF LADING (BL)</div>
+        <p>Documento de Transporte de Carga</p>
+      </div>
+
+      <div class="box">
+        <div class="field"><span class="label">Número de BL:</span> ${bl}</div>
+        <div class="field"><span class="label">Estado de Carga:</span> ${estado}</div>
+      </div>
+
+      <div class="box">
+        <div class="field"><span class="label">Shipper (Remitente):</span> ${shipper}</div>
+        <div class="field"><span class="label">Consignee (Destinatario):</span> ${consignee}</div>
+      </div>
+
+      <div class="footer">
+        Este documento es un comprobante de emisión digital registrado en el Sistema Logístico.
+      </div>
+
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `);
+  ventanaImpresion.document.close();
 }
 
 function renderizarTabla(lista) {
@@ -84,15 +131,20 @@ function renderizarTabla(lista) {
           <td>${shipper}</td>
           <td>${consignee}</td>
           <td><span style="${estilo} padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${estado}</span></td>
+          <td>
+            <button type="button" onclick="imprimirBL('${bl}', '${shipper}', '${consignee}', '${estado}')" style="background-color: #28a745; color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 0;">
+              Imprimir PDF
+            </button>
+          </td>
         </tr>
       `;
     });
   } else {
-    tablaBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No se encontraron registros.</td></tr>';
+    tablaBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No se encontraron registros.</td></tr>';
   }
 }
 
-// 2. CARGAR REGISTROS EMITIDOS
+// CARGAR REGISTROS EMITIDOS
 async function cargarRegistros() {
   try {
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID_REGISTROS}`, {
@@ -108,7 +160,7 @@ async function cargarRegistros() {
     console.error("Error al cargar la tabla:", error);
     const tablaBody = document.getElementById('tablaRegistrosBody');
     if (tablaBody) {
-      tablaBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error al cargar registros.</td></tr>';
+      tablaBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Error al cargar registros.</td></tr>';
     }
   }
 }
@@ -136,7 +188,7 @@ window.onload = async function() {
   await cargarRegistros();
 };
 
-// 3. GUARDAR ENVÍO CON ESTADO
+// GUARDAR ENVÍO CON ESTADO
 document.getElementById('shippingForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   
